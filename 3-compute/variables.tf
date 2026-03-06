@@ -27,9 +27,9 @@ variable "admin_username" {
   description = "Linux admin username"
 }
 
-variable "ssh_public_key_path" {
+variable "ssh_public_key" {
   type        = string
-  description = "Path to your SSH public key (e.g. ~/.ssh/id_rsa.pub)"
+  description = "SSH public key content (from GitHub secret)"
 }
 
 # Where the network remote state lives:
