@@ -1,0 +1,80 @@
+name: terraform
+
+on:
+  pull_request:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  network:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: network
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: terraform fmt/validate/plan (network)
+        run: |
+          terraform fmt -check
+          terraform init -input=false
+          terraform validate
+          terraform plan -input=false
+
+      - name: terraform apply (network)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve -input=false
+
+  compute:
+    needs: network
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: compute
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: terraform fmt/validate/plan (compute)
+        run: |
+          terraform fmt -check
+          terraform init -input=false
+          terraform validate
+          terraform plan -input=false
+
+      - name: terraform apply (compute)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve -input=false
