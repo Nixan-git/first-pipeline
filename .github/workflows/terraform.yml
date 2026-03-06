@@ -52,11 +52,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Debug secret presence (safe)
+      - name: Debug compute folder and main.tf
         run: |
-          [ -n "${{ secrets.AZURE_CLIENT_ID }}" ] && echo "AZURE_CLIENT_ID is SET" || echo "AZURE_CLIENT_ID is EMPTY"
-          [ -n "${{ secrets.AZURE_TENANT_ID }}" ] && echo "AZURE_TENANT_ID is SET" || echo "AZURE_TENANT_ID is EMPTY"
-          [ -n "${{ secrets.AZURE_SUBSCRIPTION_ID }}" ] && echo "AZURE_SUBSCRIPTION_ID is SET" || echo "AZURE_SUBSCRIPTION_ID is EMPTY"
+          echo "PWD=$(pwd)"
+          ls -la
+          echo "----- find main.tf -----"
+          find . -maxdepth 3 -name main.tf -print
+          echo "----- show public_key lines -----"
+          grep -RIn "public_key" . | head -n 50
 
       - uses: azure/login@v2
         with:
@@ -69,10 +72,12 @@ jobs:
           terraform_version: "1.7.5"
 
       - name: Terraform (3-compute)
+        env:
+          SSH_PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
         run: |
           cd "3-compute"
           terraform fmt -check
           terraform init -input=false
           terraform validate
-          terraform plan -input=false
-          terraform apply -auto-approve -input=false
+          terraform plan -input=false -var="ssh_public_key=${SSH_PUBLIC_KEY}"
+          terraform apply -auto-approve -input=false -var="ssh_public_key=${SSH_PUBLIC_KEY}"
