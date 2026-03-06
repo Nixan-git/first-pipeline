@@ -1,6 +1,7 @@
 name: terraform
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [ "main" ]
@@ -17,12 +18,19 @@ env:
 
 jobs:
   network:
+    name: network
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: network
     steps:
       - uses: actions/checkout@v4
+
+      - name: Debug secret presence (safe)
+        run: |
+          [ -n "${{ secrets.AZURE_CLIENT_ID }}" ] && echo "AZURE_CLIENT_ID is SET" || echo "AZURE_CLIENT_ID is EMPTY"
+          [ -n "${{ secrets.AZURE_TENANT_ID }}" ] && echo "AZURE_TENANT_ID is SET" || echo "AZURE_TENANT_ID is EMPTY"
+          [ -n "${{ secrets.AZURE_SUBSCRIPTION_ID }}" ] && echo "AZURE_SUBSCRIPTION_ID is SET" || echo "AZURE_SUBSCRIPTION_ID is EMPTY"
 
       - uses: azure/login@v2
         with:
@@ -34,20 +42,21 @@ jobs:
         with:
           terraform_version: "1.7.5"
 
-      - name: terraform fmt/validate/plan (network)
+      - name: Terraform fmt/validate/plan (network)
         run: |
           terraform fmt -check
           terraform init -input=false
           terraform validate
           terraform plan -input=false
 
-      - name: terraform apply (network)
+      - name: Terraform apply (network)
         if: github.ref == 'refs/heads/main'
         run: |
           terraform init -input=false
           terraform apply -auto-approve -input=false
 
   compute:
+    name: compute
     needs: network
     runs-on: ubuntu-latest
     defaults:
@@ -56,6 +65,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug secret presence (safe)
+        run: |
+          [ -n "${{ secrets.AZURE_CLIENT_ID }}" ] && echo "AZURE_CLIENT_ID is SET" || echo "AZURE_CLIENT_ID is EMPTY"
+          [ -n "${{ secrets.AZURE_TENANT_ID }}" ] && echo "AZURE_TENANT_ID is SET" || echo "AZURE_TENANT_ID is EMPTY"
+          [ -n "${{ secrets.AZURE_SUBSCRIPTION_ID }}" ] && echo "AZURE_SUBSCRIPTION_ID is SET" || echo "AZURE_SUBSCRIPTION_ID is EMPTY"
+
       - uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -66,14 +81,14 @@ jobs:
         with:
           terraform_version: "1.7.5"
 
-      - name: terraform fmt/validate/plan (compute)
+      - name: Terraform fmt/validate/plan (compute)
         run: |
           terraform fmt -check
           terraform init -input=false
           terraform validate
           terraform plan -input=false
 
-      - name: terraform apply (compute)
+      - name: Terraform apply (compute)
         if: github.ref == 'refs/heads/main'
         run: |
           terraform init -input=false
