@@ -2,7 +2,6 @@ name: terraform
 
 on:
   workflow_dispatch:
-  pull_request:
   push:
     branches: [ "main" ]
 
@@ -10,19 +9,9 @@ permissions:
   id-token: write
   contents: read
 
-env:
-  ARM_USE_OIDC: "true"
-  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
 jobs:
   network:
-    name: network
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: network
     steps:
       - uses: actions/checkout@v4
 
@@ -42,26 +31,18 @@ jobs:
         with:
           terraform_version: "1.7.5"
 
-      - name: Terraform fmt/validate/plan (network)
+      - name: Terraform (2-network)
         run: |
+          cd "2-network"
           terraform fmt -check
           terraform init -input=false
           terraform validate
           terraform plan -input=false
-
-      - name: Terraform apply (network)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          terraform init -input=false
           terraform apply -auto-approve -input=false
 
   compute:
-    name: compute
     needs: network
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: compute
     steps:
       - uses: actions/checkout@v4
 
@@ -81,15 +62,11 @@ jobs:
         with:
           terraform_version: "1.7.5"
 
-      - name: Terraform fmt/validate/plan (compute)
+      - name: Terraform (3-compute)
         run: |
+          cd "3-compute"
           terraform fmt -check
           terraform init -input=false
           terraform validate
           terraform plan -input=false
-
-      - name: Terraform apply (compute)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          terraform init -input=false
           terraform apply -auto-approve -input=false
