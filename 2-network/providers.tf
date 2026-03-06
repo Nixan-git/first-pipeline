@@ -6,6 +6,7 @@ terraform {
     storage_account_name = "tfstatekevy6m0h"        # from bootstrap output
     container_name       = "tfstate"                # from bootstrap output
     key                  = "network.tfstate"
+    use_oidc             = true
   }
 
   required_providers {
@@ -18,4 +19,5 @@ terraform {
 
 provider "azurerm" {
   features {}
+  use_oidc = true
 }
